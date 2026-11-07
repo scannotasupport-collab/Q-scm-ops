@@ -12,6 +12,38 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
+// Security hardening: hide server signature
+app.disable('x-powered-by');
+
+// Enterprise Web Security Headers (OWASP & SecurityHeaders.com compliance)
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  // Allow microphone for voice transcription, deny unused sensors
+  res.setHeader('Permissions-Policy', 'microphone=(self), camera=(), geolocation=(), payment=(), usb=()');
+  // Frame protection: allow self and AI Studio preview iframe, prevent external clickjacking
+  res.setHeader(
+    'Content-Security-Policy',
+    "frame-ancestors 'self' https://*.google.com https://*.googleusercontent.com https://*.aistudio.google.com https://aistudio.google.com;"
+  );
+  next();
+});
+
+// Health check endpoint for uptime monitors and security checks
+app.get('/health', (_req: Request, res: Response) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// RFC 9116 security policy endpoint
+app.get(['/security.txt', '/.well-known/security.txt'], (_req: Request, res: Response) => {
+  res.type('text/plain').send(
+    `Contact: mailto:scannota.support@gmail.com\nExpires: 2027-12-31T23:59:59.000Z\nPreferred-Languages: id, en\nCanonical: https://q.maravva-tech.com/.well-known/security.txt\n`
+  );
+});
+
 // Support base64 audio payloads
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
