@@ -35,7 +35,7 @@ import {
 import { LiveVoiceTranscriber } from './LiveVoiceTranscriber';
 import { UserAuthBadge } from './UserAuthBadge';
 import { InstallAppButton } from './InstallAppButton';
-import { cleanTranscript } from '../utils/speechUtils';
+import { cleanTranscript, mergeSpeechTranscripts } from '../utils/speechUtils';
 import { downloadAdviceDocReport, downloadAdviceTextReport } from '../utils/reportExport';
 
 interface DiscussionViewProps {
@@ -54,6 +54,7 @@ interface DiscussionViewProps {
   onRetryMessage?: (messageId: string, originalText: string) => void;
   isGuestExhausted?: boolean;
   onRequireLogin?: (reason: 'audio_input' | 'text_input' | 'new_discussion' | 'general') => void;
+  onOpenAdminModal?: () => void;
 }
 
 export const DiscussionView: React.FC<DiscussionViewProps> = ({
@@ -72,6 +73,7 @@ export const DiscussionView: React.FC<DiscussionViewProps> = ({
   onRetryMessage,
   isGuestExhausted = false,
   onRequireLogin,
+  onOpenAdminModal,
 }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordDuration, setRecordDuration] = useState(0);
@@ -298,10 +300,14 @@ export const DiscussionView: React.FC<DiscussionViewProps> = ({
           currentSessionFinalRef.current = sessionFinal;
           currentSessionInterimRef.current = sessionInterim;
 
-          const combined = (baseTranscriptRef.current + ' ' + sessionFinal + ' ' + sessionInterim).replace(/\s+/g, ' ').trim();
-          const cleanText = cleanTranscript(combined);
-          if (cleanText) {
-            setInterimTranscript(cleanText);
+          const { combined } = mergeSpeechTranscripts(
+            baseTranscriptRef.current,
+            sessionFinal,
+            sessionInterim
+          );
+
+          if (combined) {
+            setInterimTranscript(combined);
             lastLocalTranscriptTimeRef.current = Date.now();
           }
         };
@@ -316,10 +322,11 @@ export const DiscussionView: React.FC<DiscussionViewProps> = ({
 
         recognition.onend = () => {
           isRecognitionRunningRef.current = false;
-          // Commit whatever was accumulated in this recognition session to baseTranscriptRef
+          // Commit session transcript without repeating Android Chrome flushed chunks
           const finishedChunk = (currentSessionFinalRef.current || currentSessionInterimRef.current).trim();
           if (finishedChunk) {
-            baseTranscriptRef.current = cleanTranscript(baseTranscriptRef.current + ' ' + finishedChunk) + ' ';
+            const { newBase } = mergeSpeechTranscripts(baseTranscriptRef.current, finishedChunk, '');
+            baseTranscriptRef.current = newBase;
             currentSessionFinalRef.current = '';
             currentSessionInterimRef.current = '';
           }
@@ -457,9 +464,9 @@ export const DiscussionView: React.FC<DiscussionViewProps> = ({
 
     const duration = recordDuration;
     const rawTranscript =
-      typeof customTranscript === 'string'
+      typeof customTranscript === 'string' && customTranscript.trim()
         ? customTranscript
-        : (interimTranscript || (baseTranscriptRef.current + ' ' + currentSessionFinalRef.current + ' ' + currentSessionInterimRef.current));
+        : (interimTranscript || mergeSpeechTranscripts(baseTranscriptRef.current, currentSessionFinalRef.current, currentSessionInterimRef.current).combined);
     const finalTranscriptText = cleanTranscript(rawTranscript);
     setIsRecording(false);
 
@@ -658,7 +665,11 @@ export const DiscussionView: React.FC<DiscussionViewProps> = ({
 
           {/* User Auth Profile Badge */}
           <div className="shrink-0">
-            <UserAuthBadge userProfile={userProfile} onOpenIndustryModal={onChangeIndustry} />
+            <UserAuthBadge
+              userProfile={userProfile}
+              onOpenIndustryModal={onChangeIndustry}
+              onOpenAdminModal={onOpenAdminModal}
+            />
           </div>
         </div>
       </header>

@@ -11,6 +11,13 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    // Admin access strictly reserved for scannota.support@gmail.com
+    function isAdmin() {
+      return isSignedIn()
+        && request.auth.token.email == 'scannota.support@gmail.com'
+        && request.auth.token.email_verified == true;
+    }
+
     function isValidTimestampString(val) {
       return val is string && val.size() > 0 && val.size() <= 40;
     }
@@ -18,7 +25,7 @@ service cloud.firestore {
     // User Profile document validation
     function isValidUserProfile(data) {
       return data.id is string
-        && data.id == request.auth.uid
+        && (data.id == request.auth.uid || isAdmin())
         && data.email is string
         && data.email.size() > 3
         && data.displayName is string
@@ -26,6 +33,7 @@ service cloud.firestore {
         && (data.industry == null || data.industry is string)
         && (data.role == null || data.role is string)
         && (data.plantScale == null || data.plantScale is string)
+        && (data.lastLoginAt == null || isValidTimestampString(data.lastLoginAt))
         && isValidTimestampString(data.createdAt)
         && isValidTimestampString(data.updatedAt);
     }
@@ -73,11 +81,11 @@ service cloud.firestore {
 
     // Users Collection rules
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false; // Disallow querying all users
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin(); // Admin scannota.support@gmail.com can list and track all registered users
       allow create: if isOwner(userId) && isValidUserProfile(request.resource.data);
-      allow update: if isOwner(userId) && isValidUserProfile(request.resource.data);
-      allow delete: if isOwner(userId);
+      allow update: if (isOwner(userId) && isValidUserProfile(request.resource.data)) || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
 
       // User Reminders Subcollection
       match /reminders/{reminderId} {

@@ -142,9 +142,22 @@ export const MandatoryLoginModal: React.FC<MandatoryLoginModalProps> = ({
 
           {/* Error Message */}
           {(internalError || authError) && (
-            <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
-              <span>{internalError || authError}</span>
+            <div className="mb-4 p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs text-left">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-semibold">{internalError || authError}</p>
+                  {(String(internalError || authError).includes('Authorized domains') ||
+                    String(internalError || authError).includes('unauthorized-domain')) && (
+                    <div className="mt-2 p-2 bg-white rounded-xl border border-rose-200 text-[11px] text-slate-700 space-y-1">
+                      <p className="font-bold text-slate-900">Cara Mengatasi (1 Menit):</p>
+                      <p>1. Buka <strong>Firebase Console</strong> project Anda.</p>
+                      <p>2. Masuk ke <strong>Authentication ➔ Settings ➔ Authorized domains</strong>.</p>
+                      <p>3. Klik <strong>Add domain</strong> lalu masukkan: <code className="bg-slate-100 px-1 py-0.5 rounded font-mono font-bold">q.maravva-tech.com</code>.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 

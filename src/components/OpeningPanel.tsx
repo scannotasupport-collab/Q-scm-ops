@@ -11,7 +11,7 @@ import { UserIndustryProfile } from '../types';
 import { LiveVoiceTranscriber } from './LiveVoiceTranscriber';
 import { UserAuthBadge } from './UserAuthBadge';
 import { InstallAppButton } from './InstallAppButton';
-import { cleanTranscript } from '../utils/speechUtils';
+import { cleanTranscript, mergeSpeechTranscripts } from '../utils/speechUtils';
 
 interface OpeningPanelProps {
   onAudioSubmit: (audioBase64: string, durationSeconds: number, mimeType: string, interimText?: string) => Promise<void>;
@@ -21,6 +21,7 @@ interface OpeningPanelProps {
   onChangeIndustry: () => void;
   isGuestExhausted?: boolean;
   onRequireLogin?: (reason: 'audio_input' | 'text_input' | 'new_discussion' | 'general') => void;
+  onOpenAdminModal?: () => void;
 }
 
 export const OpeningPanel: React.FC<OpeningPanelProps> = ({
@@ -31,6 +32,7 @@ export const OpeningPanel: React.FC<OpeningPanelProps> = ({
   onChangeIndustry,
   isGuestExhausted = false,
   onRequireLogin,
+  onOpenAdminModal,
 }) => {
   const [isRecording, setIsRecording] = useState(false);
   const isRecordingRef = useRef(false);
@@ -120,10 +122,14 @@ export const OpeningPanel: React.FC<OpeningPanelProps> = ({
           currentSessionFinalRef.current = sessionFinal;
           currentSessionInterimRef.current = sessionInterim;
 
-          const combined = (baseTranscriptRef.current + ' ' + sessionFinal + ' ' + sessionInterim).replace(/\s+/g, ' ').trim();
-          const cleanText = cleanTranscript(combined);
-          if (cleanText) {
-            setInterimTranscript(cleanText);
+          const { combined } = mergeSpeechTranscripts(
+            baseTranscriptRef.current,
+            sessionFinal,
+            sessionInterim
+          );
+
+          if (combined) {
+            setInterimTranscript(combined);
             lastLocalTranscriptTimeRef.current = Date.now();
           }
         };
@@ -138,10 +144,11 @@ export const OpeningPanel: React.FC<OpeningPanelProps> = ({
 
         recognition.onend = () => {
           isRecognitionRunningRef.current = false;
-          // Commit whatever was accumulated in this recognition session to baseTranscriptRef
+          // Commit session transcript without repeating Android Chrome flushed chunks
           const finishedChunk = (currentSessionFinalRef.current || currentSessionInterimRef.current).trim();
           if (finishedChunk) {
-            baseTranscriptRef.current = cleanTranscript(baseTranscriptRef.current + ' ' + finishedChunk) + ' ';
+            const { newBase } = mergeSpeechTranscripts(baseTranscriptRef.current, finishedChunk, '');
+            baseTranscriptRef.current = newBase;
             currentSessionFinalRef.current = '';
             currentSessionInterimRef.current = '';
           }
@@ -313,9 +320,9 @@ export const OpeningPanel: React.FC<OpeningPanelProps> = ({
 
     const duration = recordDuration;
     const rawTranscript =
-      typeof customTranscript === 'string'
+      typeof customTranscript === 'string' && customTranscript.trim()
         ? customTranscript
-        : (interimTranscript || (baseTranscriptRef.current + ' ' + currentSessionFinalRef.current + ' ' + currentSessionInterimRef.current));
+        : (interimTranscript || mergeSpeechTranscripts(baseTranscriptRef.current, currentSessionFinalRef.current, currentSessionInterimRef.current).combined);
     const finalTranscriptText = cleanTranscript(rawTranscript);
     setIsRecording(false);
 
@@ -397,7 +404,11 @@ export const OpeningPanel: React.FC<OpeningPanelProps> = ({
       </div>
 
       <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20">
-        <UserAuthBadge userProfile={userProfile} onOpenIndustryModal={onChangeIndustry} />
+        <UserAuthBadge
+          userProfile={userProfile}
+          onOpenIndustryModal={onChangeIndustry}
+          onOpenAdminModal={onOpenAdminModal}
+        />
       </div>
 
       {/* Main Single Centered Opening Panel */}

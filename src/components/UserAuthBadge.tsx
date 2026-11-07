@@ -1,14 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogIn, LogOut, Cloud, ShieldCheck, Factory, ChevronDown } from 'lucide-react';
+import { LogIn, LogOut, Cloud, ShieldCheck, Factory, ChevronDown, ShieldAlert } from 'lucide-react';
 import { UserIndustryProfile } from '../types';
 
 interface UserAuthBadgeProps {
   userProfile: UserIndustryProfile | null;
   onOpenIndustryModal: () => void;
+  onOpenAdminModal?: () => void;
 }
 
-export const UserAuthBadge: React.FC<UserAuthBadgeProps> = ({ userProfile, onOpenIndustryModal }) => {
+export const UserAuthBadge: React.FC<UserAuthBadgeProps> = ({
+  userProfile,
+  onOpenIndustryModal,
+  onOpenAdminModal,
+}) => {
   const { user, loading, error, signInWithGoogle, logout } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -68,67 +73,108 @@ export const UserAuthBadge: React.FC<UserAuthBadgeProps> = ({ userProfile, onOpe
     );
   }
 
-  return (
-    <div className="relative shrink-0" ref={dropdownRef}>
-      <button
-        onClick={() => setDropdownOpen(!dropdownOpen)}
-        className="flex items-center gap-1.5 p-1 sm:px-2.5 sm:py-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-full shadow-xs transition-all cursor-pointer shrink-0"
-      >
-        {user.photoURL ? (
-          <img
-            src={user.photoURL}
-            alt={user.displayName || 'User'}
-            className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover border border-slate-200 shrink-0"
-            referrerPolicy="no-referrer"
-          />
-        ) : (
-          <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
-            {(user.displayName || user.email || 'U')[0].toUpperCase()}
-          </div>
-        )}
-        <div className="hidden md:flex flex-col text-left">
-          <span className="text-xs font-semibold text-slate-800 leading-tight max-w-[110px] truncate">
-            {user.displayName?.split(' ')[0] || 'User'}
-          </span>
-          <span className="text-[10px] text-emerald-600 flex items-center gap-1 font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            Cloud Aktif
-          </span>
-        </div>
-        <ChevronDown className="w-3 h-3 text-slate-400 hidden sm:block shrink-0" />
-      </button>
+  const isAdmin = user.email?.toLowerCase() === 'scannota.support@gmail.com';
 
-      {/* Dropdown Menu */}
-      {dropdownOpen && (
-        <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-200 py-3 px-3 z-50 text-slate-700 animate-in fade-in slide-in-from-top-2 duration-150">
-          {/* User Profile Card */}
-          <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
-            {user.photoURL ? (
-              <img
-                src={user.photoURL}
-                alt=""
-                className="w-10 h-10 rounded-full object-cover border border-slate-200"
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-blue-600 text-white font-bold text-sm flex items-center justify-center">
-                {(user.displayName || user.email || 'U')[0].toUpperCase()}
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-slate-900 truncate">
-                {user.displayName || 'Praktisi Industri'}
-              </p>
-              <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
-              <div className="flex items-center gap-1 mt-1 text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md inline-flex border border-emerald-200">
-                <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                <span>Tersinkronisasi Firebase</span>
+  return (
+    <div className="flex items-center gap-2 shrink-0">
+      {/* Direct Admin Quick Access Button for scannota.support@gmail.com */}
+      {isAdmin && onOpenAdminModal && (
+        <button
+          type="button"
+          onClick={onOpenAdminModal}
+          className="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 active:from-amber-600 active:to-amber-700 text-slate-950 font-black text-xs rounded-full shadow-sm hover:shadow transition-all cursor-pointer shrink-0 animate-in fade-in"
+          title="Buka Panel Admin & Pelacak Pengguna"
+        >
+          <ShieldAlert className="w-3.5 h-3.5 text-slate-950" />
+          <span>Panel Admin</span>
+        </button>
+      )}
+
+      <div className="relative shrink-0" ref={dropdownRef}>
+        <button
+          onClick={() => setDropdownOpen(!dropdownOpen)}
+          className="flex items-center gap-1.5 p-1 sm:px-2.5 sm:py-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-full shadow-xs transition-all cursor-pointer shrink-0"
+        >
+          {user.photoURL ? (
+            <img
+              src={user.photoURL}
+              alt={user.displayName || 'User'}
+              className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover border border-slate-200 shrink-0"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+              {(user.displayName || user.email || 'U')[0].toUpperCase()}
+            </div>
+          )}
+          <div className="hidden md:flex flex-col text-left">
+            <span className="text-xs font-semibold text-slate-800 leading-tight max-w-[110px] truncate">
+              {user.displayName?.split(' ')[0] || 'User'}
+            </span>
+            <span className="text-[10px] text-emerald-600 flex items-center gap-1 font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              Cloud Aktif
+            </span>
+          </div>
+          <ChevronDown className="w-3 h-3 text-slate-400 hidden sm:block shrink-0" />
+        </button>
+
+        {/* Dropdown Menu */}
+        {dropdownOpen && (
+          <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-200 py-3 px-3 z-50 text-slate-700 animate-in fade-in slide-in-from-top-2 duration-150">
+            {/* User Profile Card */}
+            <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+              {user.photoURL ? (
+                <img
+                  src={user.photoURL}
+                  alt=""
+                  className="w-10 h-10 rounded-full object-cover border border-slate-200"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-blue-600 text-white font-bold text-sm flex items-center justify-center">
+                  {(user.displayName || user.email || 'U')[0].toUpperCase()}
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-slate-900 truncate">
+                  {user.displayName || 'Praktisi Industri'}
+                </p>
+                <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
+                <div className="flex items-center gap-1 mt-1 text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md inline-flex border border-emerald-200">
+                  <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                  <span>Tersinkronisasi Firebase</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Sektor Industri Aktif */}
-          <div className="my-2.5 p-2 bg-slate-50 rounded-xl border border-slate-100 text-xs">
+            {/* Special Admin Item for scannota.support@gmail.com */}
+            {isAdmin && onOpenAdminModal && (
+              <div className="mt-2.5 pb-2.5 border-b border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    onOpenAdminModal();
+                  }}
+                  className="w-full flex items-center justify-between p-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-950 font-bold text-xs transition cursor-pointer text-left"
+                >
+                  <div className="flex items-center gap-2">
+                    <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
+                    <div>
+                      <div className="leading-tight">Panel Admin</div>
+                      <div className="text-[10px] text-amber-700 font-normal">Track Jumlah User Join</div>
+                    </div>
+                  </div>
+                  <span className="px-1.5 py-0.5 rounded-md bg-amber-400 text-slate-950 text-[10px] font-black uppercase">
+                    Owner
+                  </span>
+                </button>
+              </div>
+            )}
+
+            {/* Sektor Industri Aktif */}
+            <div className="my-2.5 p-2 bg-slate-50 rounded-xl border border-slate-100 text-xs">
             <div className="flex items-center justify-between text-slate-500 text-[11px] mb-1">
               <span className="flex items-center gap-1">
                 <Factory className="w-3.5 h-3.5 text-slate-600" />
@@ -173,6 +219,7 @@ export const UserAuthBadge: React.FC<UserAuthBadgeProps> = ({ userProfile, onOpe
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

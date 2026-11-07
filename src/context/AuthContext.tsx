@@ -52,6 +52,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           if (snap.exists()) {
             const data = snap.data();
+            const now = new Date().toISOString();
+            // Keep last login activity fresh
+            await setDoc(
+              userDocRef,
+              {
+                lastLoginAt: now,
+                updatedAt: now,
+                displayName: currentUser.displayName || data.displayName || 'Praktisi Industri',
+                photoURL: currentUser.photoURL || data.photoURL || '',
+              },
+              { merge: true }
+            );
+
             // If remote has industry profile, restore to local storage
             if (data.industry) {
               const restoredProfile: UserIndustryProfile = {
@@ -72,6 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               industry: localProfile?.industry || '',
               role: localProfile?.role || '',
               plantScale: localProfile?.plantScale || '',
+              lastLoginAt: now,
               createdAt: now,
               updatedAt: now,
             });
@@ -98,6 +112,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setError('Login dibatalkan (popup ditutup)');
       } else if (e.code === 'auth/cancelled-popup-request') {
         // Ignored
+      } else if (e.code === 'auth/unauthorized-domain' || e.message?.includes('unauthorized-domain')) {
+        const currentDomain = typeof window !== 'undefined' ? window.location.hostname : 'q.maravva-tech.com';
+        setError(
+          `Domain "${currentDomain}" perlu ditambahkan ke daftar "Authorized domains" di Firebase Console (Authentication > Settings > Authorized domains).`
+        );
       } else {
         setError(e.message || 'Gagal login dengan Google. Silakan coba lagi.');
       }

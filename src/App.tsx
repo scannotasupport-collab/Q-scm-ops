@@ -39,6 +39,7 @@ import { ReminderDrawer } from './components/ReminderDrawer';
 import { MemoryDrawer } from './components/MemoryDrawer';
 import { IndustrySelectorModal } from './components/IndustrySelectorModal';
 import { MandatoryLoginModal } from './components/MandatoryLoginModal';
+import { AdminUserTrackerModal } from './components/AdminUserTrackerModal';
 import { Bell, CheckCircle2, X } from 'lucide-react';
 
 export default function App() {
@@ -49,6 +50,7 @@ export default function App() {
   const [userProfile, setUserProfile] = useState<UserIndustryProfile | null>(() => getUserProfile());
   const [isIndustryModalOpen, setIsIndustryModalOpen] = useState<boolean>(() => !getUserProfile());
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
 
   // Mandatory Google Login modal state for second input attempt
   const [isMandatoryLoginModalOpen, setIsMandatoryLoginModalOpen] = useState(false);
@@ -548,6 +550,7 @@ export default function App() {
           onChangeIndustry={() => setIsIndustryModalOpen(true)}
           isGuestExhausted={isGuestExhausted}
           onRequireLogin={triggerRequireLogin}
+          onOpenAdminModal={() => setIsAdminModalOpen(true)}
         />
       ) : (
         <DiscussionView
@@ -566,8 +569,15 @@ export default function App() {
           onRetryMessage={handleRetryMessage}
           isGuestExhausted={isGuestExhausted}
           onRequireLogin={triggerRequireLogin}
+          onOpenAdminModal={() => setIsAdminModalOpen(true)}
         />
       )}
+
+      {/* Admin User Tracker Modal (strictly for scannota.support@gmail.com) */}
+      <AdminUserTrackerModal
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
+      />
 
       {/* Mandatory Google Login Modal for second problem submission */}
       <MandatoryLoginModal
