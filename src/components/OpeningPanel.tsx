@@ -10,6 +10,7 @@ import {
 import { UserIndustryProfile } from '../types';
 import { LiveVoiceTranscriber } from './LiveVoiceTranscriber';
 import { UserAuthBadge } from './UserAuthBadge';
+import { InstallAppButton } from './InstallAppButton';
 import { cleanTranscript } from '../utils/speechUtils';
 
 interface OpeningPanelProps {
@@ -390,7 +391,11 @@ export const OpeningPanel: React.FC<OpeningPanelProps> = ({
       {/* Background subtle factory grid ambiance */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#cbd5e140_1px,transparent_1px),linear-gradient(to_bottom,#cbd5e140_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] pointer-events-none" />
 
-      {/* Floating Top Header with Auth Badge */}
+      {/* Floating Top Header: Left = Install App Button, Right = Auth Badge */}
+      <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-20">
+        <InstallAppButton variant="compact" />
+      </div>
+
       <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20">
         <UserAuthBadge userProfile={userProfile} onOpenIndustryModal={onChangeIndustry} />
       </div>
@@ -407,12 +412,15 @@ export const OpeningPanel: React.FC<OpeningPanelProps> = ({
           />
         </div>
 
-        {/* Badges: Expert status & Industry Profile selector */}
+        {/* Badges: Expert status & Install App & Industry Profile selector */}
         <div className="flex flex-wrap items-center justify-center gap-2 mb-4">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200/70 text-xs font-semibold text-indigo-700">
             <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
             <span>Q • Rekan Diskusi Operasional & SCM</span>
           </div>
+
+          {/* Prominent Install Button on Home Screen */}
+          <InstallAppButton variant="prominent" />
 
           {userProfile && (
             <button

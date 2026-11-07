@@ -34,6 +34,7 @@ import {
 } from '../utils/audio';
 import { LiveVoiceTranscriber } from './LiveVoiceTranscriber';
 import { UserAuthBadge } from './UserAuthBadge';
+import { InstallAppButton } from './InstallAppButton';
 import { cleanTranscript } from '../utils/speechUtils';
 import { downloadAdviceDocReport, downloadAdviceTextReport } from '../utils/reportExport';
 
@@ -569,6 +570,9 @@ export const DiscussionView: React.FC<DiscussionViewProps> = ({
 
         {/* Right action controls */}
         <div className="flex items-center gap-1 sm:gap-2 shrink-0 ml-auto">
+          {/* Install App Button */}
+          <InstallAppButton variant="compact" />
+
           {/* Active Industry Context Pill */}
           {userProfile && (
             <button
