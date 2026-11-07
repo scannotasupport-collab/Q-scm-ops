@@ -1,0 +1,112 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidTimestampString(val) {
+      return val is string && val.size() > 0 && val.size() <= 40;
+    }
+
+    // User Profile document validation
+    function isValidUserProfile(data) {
+      return data.id is string
+        && data.id == request.auth.uid
+        && data.email is string
+        && data.email.size() > 3
+        && data.displayName is string
+        && (data.photoURL == null || data.photoURL is string)
+        && (data.industry == null || data.industry is string)
+        && (data.role == null || data.role is string)
+        && (data.plantScale == null || data.plantScale is string)
+        && isValidTimestampString(data.createdAt)
+        && isValidTimestampString(data.updatedAt);
+    }
+
+    // Reminder document validation
+    function isValidReminder(data, userId) {
+      return data.id is string
+        && data.userId == userId
+        && data.title is string
+        && data.title.size() > 0
+        && data.title.size() <= 200
+        && data.detail is string
+        && data.detail.size() <= 3000
+        && isValidTimestampString(data.dueTime)
+        && data.category is string
+        && (data.priority == 'high' || data.priority == 'medium' || data.priority == 'low')
+        && (data.status == 'pending' || data.status == 'completed')
+        && isValidTimestampString(data.createdAt);
+    }
+
+    // Factory Fact document validation
+    function isValidFactoryFact(data, userId) {
+      return data.id is string
+        && data.userId == userId
+        && data.category is string
+        && data.category.size() > 0
+        && data.category.size() <= 100
+        && data.fact is string
+        && data.fact.size() > 0
+        && data.fact.size() <= 2000
+        && isValidTimestampString(data.date);
+    }
+
+    // Discussion document validation
+    function isValidDiscussion(data, userId) {
+      return data.id is string
+        && data.userId == userId
+        && data.title is string
+        && data.title.size() > 0
+        && data.title.size() <= 250
+        && data.messages is list
+        && isValidTimestampString(data.createdAt)
+        && isValidTimestampString(data.lastUpdated);
+    }
+
+    // Users Collection rules
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // Disallow querying all users
+      allow create: if isOwner(userId) && isValidUserProfile(request.resource.data);
+      allow update: if isOwner(userId) && isValidUserProfile(request.resource.data);
+      allow delete: if isOwner(userId);
+
+      // User Reminders Subcollection
+      match /reminders/{reminderId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidReminder(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidReminder(request.resource.data, userId);
+        allow delete: if isOwner(userId);
+      }
+
+      // User Factory Facts Subcollection
+      match /factoryFacts/{factId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidFactoryFact(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidFactoryFact(request.resource.data, userId);
+        allow delete: if isOwner(userId);
+      }
+
+      // User Discussions Subcollection
+      match /discussions/{discussionId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidDiscussion(request.resource.data, userId);
+        allow update: if isOwner(userId) && isValidDiscussion(request.resource.data, userId);
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    // Default deny all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

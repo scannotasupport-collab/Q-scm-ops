@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "IndustrialSupplyChainConsultantBlueprint",
+  "description": "Firestore schema blueprint for Industrial Supply Chain & Plant Operations Consultant App (Q)",
+  "entities": {
+    "UserProfile": {
+      "collection": "users",
+      "path": "/users/{userId}",
+      "description": "User profile with industry preferences and metadata",
+      "fields": {
+        "id": { "type": "string", "description": "User ID matching Firebase Auth UID" },
+        "email": { "type": "string", "description": "User Google email address" },
+        "displayName": { "type": "string", "description": "User full display name" },
+        "photoURL": { "type": "string", "description": "User avatar photo URL", "optional": true },
+        "industry": { "type": "string", "description": "Selected factory manufacturing sector", "optional": true },
+        "role": { "type": "string", "description": "User factory role", "optional": true },
+        "plantScale": { "type": "string", "description": "Plant scale (small, medium, large enterprise)", "optional": true },
+        "createdAt": { "type": "string", "description": "ISO timestamp of account registration" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of profile update" }
+      }
+    },
+    "UserReminder": {
+      "collection": "reminders",
+      "path": "/users/{userId}/reminders/{reminderId}",
+      "description": "Plant action items and follow-up schedule reminders",
+      "fields": {
+        "id": { "type": "string", "description": "Unique reminder identifier" },
+        "userId": { "type": "string", "description": "Owner user UID" },
+        "title": { "type": "string", "description": "Reminder task summary" },
+        "detail": { "type": "string", "description": "Detailed notes or action plan" },
+        "dueTime": { "type": "string", "description": "ISO datetime for scheduled alert" },
+        "category": { "type": "string", "description": "Operational category (maintenance, supply_chain, production, quality, vendor, general)" },
+        "priority": { "type": "string", "description": "Priority level (high, medium, low)" },
+        "status": { "type": "string", "description": "Status (pending, completed)" },
+        "createdAt": { "type": "string", "description": "ISO creation timestamp" }
+      }
+    },
+    "UserFactoryFact": {
+      "collection": "factoryFacts",
+      "path": "/users/{userId}/factoryFacts/{factId}",
+      "description": "Long-term operational memory and factory parameters",
+      "fields": {
+        "id": { "type": "string", "description": "Unique fact identifier" },
+        "userId": { "type": "string", "description": "Owner user UID" },
+        "category": { "type": "string", "description": "Memory category" },
+        "fact": { "type": "string", "description": "Operational fact statement" },
+        "date": { "type": "string", "description": "ISO timestamp when fact was recorded" }
+      }
+    },
+    "UserDiscussion": {
+      "collection": "discussions",
+      "path": "/users/{userId}/discussions/{discussionId}",
+      "description": "Archived discussion threads and consultations with Q",
+      "fields": {
+        "id": { "type": "string", "description": "Session ID" },
+        "userId": { "type": "string", "description": "Owner user UID" },
+        "title": { "type": "string", "description": "Title or summary of discussion" },
+        "messages": { "type": "array", "description": "List of message objects in this thread" },
+        "createdAt": { "type": "string", "description": "ISO timestamp created" },
+        "lastUpdated": { "type": "string", "description": "ISO timestamp last updated" }
+      }
+    }
+  }
+}

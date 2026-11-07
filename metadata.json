@@ -1,0 +1,6 @@
+{
+  "name": "Pabrik & Supply Chain AI Consultant",
+  "description": "Asisten dan konsultan ahli pabrik dan supply chain berbasis input suara dan analisis histori obrolan untuk solusi operasional serta pengingat otomatis.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
