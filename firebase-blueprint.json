@@ -16,6 +16,7 @@
         "role": { "type": "string", "description": "User factory role", "optional": true },
         "plantScale": { "type": "string", "description": "Plant scale (small, medium, large enterprise)", "optional": true },
         "lastLoginAt": { "type": "string", "description": "ISO timestamp of last activity / login", "optional": true },
+        "dailyUsage": { "type": "object", "description": "Daily question count for rate limiting (max 10 queries per day)", "optional": true },
         "createdAt": { "type": "string", "description": "ISO timestamp of account registration" },
         "updatedAt": { "type": "string", "description": "ISO timestamp of profile update" }
       }

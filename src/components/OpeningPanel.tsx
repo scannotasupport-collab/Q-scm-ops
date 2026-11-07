@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, Square, Loader2, Sparkles, Volume2, AlertCircle, Factory } from 'lucide-react';
+import { Mic, Square, Loader2, Sparkles, Volume2, AlertCircle, Factory, Clock } from 'lucide-react';
 import {
   playChimeSound,
   blobToBase64,
@@ -22,6 +22,9 @@ interface OpeningPanelProps {
   isGuestExhausted?: boolean;
   onRequireLogin?: (reason: 'audio_input' | 'text_input' | 'new_discussion' | 'general') => void;
   onOpenAdminModal?: () => void;
+  remainingDailyQuota?: number;
+  isDailyQuotaExhausted?: boolean;
+  onOpenDailyQuotaModal?: () => void;
 }
 
 export const OpeningPanel: React.FC<OpeningPanelProps> = ({
@@ -33,6 +36,9 @@ export const OpeningPanel: React.FC<OpeningPanelProps> = ({
   isGuestExhausted = false,
   onRequireLogin,
   onOpenAdminModal,
+  remainingDailyQuota,
+  isDailyQuotaExhausted = false,
+  onOpenDailyQuotaModal,
 }) => {
   const [isRecording, setIsRecording] = useState(false);
   const isRecordingRef = useRef(false);
@@ -79,6 +85,10 @@ export const OpeningPanel: React.FC<OpeningPanelProps> = ({
   const startRecording = async () => {
     if (isGuestExhausted && onRequireLogin) {
       onRequireLogin('audio_input');
+      return;
+    }
+    if (isDailyQuotaExhausted && onOpenDailyQuotaModal) {
+      onOpenDailyQuotaModal();
       return;
     }
     setAudioError(null);
@@ -390,6 +400,10 @@ export const OpeningPanel: React.FC<OpeningPanelProps> = ({
       onRequireLogin('text_input');
       return;
     }
+    if (isDailyQuotaExhausted && onOpenDailyQuotaModal) {
+      onOpenDailyQuotaModal();
+      return;
+    }
     onTextSubmit(fallbackInput.trim());
   };
 
@@ -444,6 +458,31 @@ export const OpeningPanel: React.FC<OpeningPanelProps> = ({
               <span className="font-semibold text-slate-800">{userProfile.industry}</span>
               <span className="text-[10px] text-indigo-600 font-bold bg-indigo-100/80 px-1.5 py-0.2 rounded ml-0.5">
                 Ganti
+              </span>
+            </button>
+          )}
+
+          {/* Daily Quota Counter Badge */}
+          {typeof remainingDailyQuota === 'number' && (
+            <button
+              type="button"
+              onClick={onOpenDailyQuotaModal}
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition cursor-pointer shadow-2xs border ${
+                isDailyQuotaExhausted
+                  ? 'bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-100'
+                  : remainingDailyQuota <= 3
+                  ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
+                  : 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+              }`}
+              title="Klik untuk melihat detail kuota harian"
+            >
+              <Clock className="w-3.5 h-3.5" />
+              <span>
+                {isDailyQuotaExhausted
+                  ? 'Batas Kuota Hari Ini (10/10)'
+                  : remainingDailyQuota >= 999
+                  ? 'Kuota: Bebas (Admin)'
+                  : `Sisa Kuota: ${remainingDailyQuota}/10`}
               </span>
             </button>
           )}

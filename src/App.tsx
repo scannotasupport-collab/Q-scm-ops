@@ -21,6 +21,12 @@ import {
   saveUserProfile,
   getGuestSubmissionCount,
   incrementGuestSubmissionCount,
+  DAILY_QUESTION_LIMIT,
+  getUserDailyUsage,
+  incrementUserDailyUsage,
+  setUserDailyUsage,
+  isDailyLimitReached,
+  getTodayDateKey,
 } from './utils/storage';
 import {
   saveReminderToCloud,
@@ -30,6 +36,8 @@ import {
   saveFactoryFactToCloud,
   deleteFactoryFactFromCloud,
   archiveSessionToCloud,
+  syncDailyUsageToCloud,
+  fetchUserDailyUsageFromCloud,
 } from './services/firestoreSync';
 import { useAuth } from './context/AuthContext';
 import { playChimeSound } from './utils/audio';
@@ -40,6 +48,7 @@ import { MemoryDrawer } from './components/MemoryDrawer';
 import { IndustrySelectorModal } from './components/IndustrySelectorModal';
 import { MandatoryLoginModal } from './components/MandatoryLoginModal';
 import { AdminUserTrackerModal } from './components/AdminUserTrackerModal';
+import { DailyQuotaModal } from './components/DailyQuotaModal';
 import { Bell, CheckCircle2, X } from 'lucide-react';
 
 export default function App() {
@@ -51,6 +60,33 @@ export default function App() {
   const [isIndustryModalOpen, setIsIndustryModalOpen] = useState<boolean>(() => !getUserProfile());
   const [isProcessing, setIsProcessing] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+
+  // Daily Consultation Quota Tracker (Max 10 questions/day)
+  const isAdmin = user?.email?.toLowerCase() === 'scannota.support@gmail.com';
+  const [dailyUsage, setDailyUsage] = useState<{ date: string; count: number }>(() => getUserDailyUsage(user?.uid));
+  const [isDailyQuotaModalOpen, setIsDailyQuotaModalOpen] = useState(false);
+
+  const isDailyQuotaExhausted = !isAdmin && isDailyLimitReached(user?.uid, isAdmin);
+  const remainingDailyQuota = isAdmin ? 999 : Math.max(0, DAILY_QUESTION_LIMIT - dailyUsage.count);
+
+  // Sync daily quota with cloud when user logs in
+  useEffect(() => {
+    const localUsage = getUserDailyUsage(user?.uid);
+    setDailyUsage(localUsage);
+
+    if (user) {
+      fetchUserDailyUsageFromCloud(user.uid).then((cloudUsage) => {
+        if (cloudUsage) {
+          const today = getTodayDateKey();
+          if (cloudUsage.date === today) {
+            const maxCount = Math.max(localUsage.date === today ? localUsage.count : 0, cloudUsage.count);
+            setUserDailyUsage(user.uid, today, maxCount);
+            setDailyUsage({ date: today, count: maxCount });
+          }
+        }
+      });
+    }
+  }, [user]);
 
   // Mandatory Google Login modal state for second input attempt
   const [isMandatoryLoginModalOpen, setIsMandatoryLoginModalOpen] = useState(false);
@@ -196,6 +232,12 @@ export default function App() {
       return;
     }
 
+    // Intercept if daily question limit is reached (max 10 questions/day)
+    if (!isAdmin && isDailyLimitReached(user?.uid, isAdmin)) {
+      setIsDailyQuotaModalOpen(true);
+      return;
+    }
+
     setIsProcessing(true);
 
     // Optimistically add user turn with audio indicator
@@ -311,6 +353,13 @@ export default function App() {
 
       setMessages([...nextMessages.slice(0, -1), updatedUserMsg, botMsg]);
 
+      // Update daily question count
+      const updatedUsage = incrementUserDailyUsage(user?.uid);
+      setDailyUsage(updatedUsage);
+      if (user) {
+        syncDailyUsageToCloud(user.uid, updatedUsage.date, updatedUsage.count);
+      }
+
       // If user is guest, count the completed submission so next input requires login
       if (!user) {
         incrementGuestSubmissionCount();
@@ -335,6 +384,12 @@ export default function App() {
     // Intercept if guest has already submitted their 1st problem
     if (isGuestExhausted) {
       triggerRequireLogin('text_input');
+      return;
+    }
+
+    // Intercept if daily question limit is reached (max 10 questions/day)
+    if (!isAdmin && isDailyLimitReached(user?.uid, isAdmin)) {
+      setIsDailyQuotaModalOpen(true);
       return;
     }
 
@@ -436,6 +491,13 @@ export default function App() {
       };
 
       setMessages([...nextMessages, botMsg]);
+
+      // Update daily question count
+      const updatedUsage = incrementUserDailyUsage(user?.uid);
+      setDailyUsage(updatedUsage);
+      if (user) {
+        syncDailyUsageToCloud(user.uid, updatedUsage.date, updatedUsage.count);
+      }
 
       // If user is guest, count the completed submission so next input requires login
       if (!user) {
@@ -551,6 +613,9 @@ export default function App() {
           isGuestExhausted={isGuestExhausted}
           onRequireLogin={triggerRequireLogin}
           onOpenAdminModal={() => setIsAdminModalOpen(true)}
+          remainingDailyQuota={remainingDailyQuota}
+          isDailyQuotaExhausted={isDailyQuotaExhausted}
+          onOpenDailyQuotaModal={() => setIsDailyQuotaModalOpen(true)}
         />
       ) : (
         <DiscussionView
@@ -570,8 +635,20 @@ export default function App() {
           isGuestExhausted={isGuestExhausted}
           onRequireLogin={triggerRequireLogin}
           onOpenAdminModal={() => setIsAdminModalOpen(true)}
+          remainingDailyQuota={remainingDailyQuota}
+          isDailyQuotaExhausted={isDailyQuotaExhausted}
+          onOpenDailyQuotaModal={() => setIsDailyQuotaModalOpen(true)}
         />
       )}
+
+      {/* Daily Consultation Quota Modal (max 10 queries/day) */}
+      <DailyQuotaModal
+        isOpen={isDailyQuotaModalOpen}
+        onClose={() => setIsDailyQuotaModalOpen(false)}
+        usedCount={dailyUsage.count}
+        maxLimit={DAILY_QUESTION_LIMIT}
+        userEmail={user?.email}
+      />
 
       {/* Admin User Tracker Modal (strictly for scannota.support@gmail.com) */}
       <AdminUserTrackerModal

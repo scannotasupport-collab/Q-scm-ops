@@ -288,3 +288,69 @@ export function resetGuestSubmissionCount(): void {
   } catch {}
 }
 
+/**
+ * Daily Consultation Rate Limiter (Max 10 questions per user per day)
+ */
+export const DAILY_QUESTION_LIMIT = 10;
+
+export function getTodayDateKey(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function getUserDailyUsage(userId?: string): { date: string; count: number } {
+  try {
+    const key = `plant_sc_daily_usage_${userId || 'guest'}`;
+    const raw = localStorage.getItem(key);
+    const today = getTodayDateKey();
+    if (!raw) {
+      return { date: today, count: 0 };
+    }
+    const parsed = JSON.parse(raw);
+    if (parsed.date !== today) {
+      const reset = { date: today, count: 0 };
+      localStorage.setItem(key, JSON.stringify(reset));
+      return reset;
+    }
+    return { date: today, count: Number(parsed.count) || 0 };
+  } catch {
+    return { date: getTodayDateKey(), count: 0 };
+  }
+}
+
+export function incrementUserDailyUsage(userId?: string): { date: string; count: number } {
+  try {
+    const current = getUserDailyUsage(userId);
+    const today = getTodayDateKey();
+    const newCount = (current.date === today ? current.count : 0) + 1;
+    const updated = { date: today, count: newCount };
+    const key = `plant_sc_daily_usage_${userId || 'guest'}`;
+    localStorage.setItem(key, JSON.stringify(updated));
+    return updated;
+  } catch {
+    return { date: getTodayDateKey(), count: 1 };
+  }
+}
+
+export function setUserDailyUsage(userId: string, date: string, count: number): void {
+  try {
+    const key = `plant_sc_daily_usage_${userId}`;
+    localStorage.setItem(key, JSON.stringify({ date, count }));
+  } catch {}
+}
+
+export function getRemainingDailyQuota(userId?: string, isAdmin?: boolean): number {
+  if (isAdmin) return 999;
+  const usage = getUserDailyUsage(userId);
+  return Math.max(0, DAILY_QUESTION_LIMIT - usage.count);
+}
+
+export function isDailyLimitReached(userId?: string, isAdmin?: boolean): boolean {
+  if (isAdmin) return false;
+  const usage = getUserDailyUsage(userId);
+  return usage.count >= DAILY_QUESTION_LIMIT;
+}
+

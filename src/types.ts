@@ -59,3 +59,8 @@ export interface DiscussionSession {
   lastUpdated: string;
   messages: ChatMessage[];
 }
+
+export interface DailyUsageInfo {
+  date: string; // YYYY-MM-DD
+  count: number;
+}

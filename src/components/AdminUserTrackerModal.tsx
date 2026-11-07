@@ -28,6 +28,7 @@ interface TrackedUser {
   createdAt?: string;
   lastLoginAt?: string;
   updatedAt?: string;
+  dailyUsage?: { date: string; count: number };
 }
 
 interface AdminUserTrackerModalProps {
@@ -79,6 +80,7 @@ export const AdminUserTrackerModal: React.FC<AdminUserTrackerModalProps> = ({
             createdAt: d.createdAt || '',
             lastLoginAt: d.lastLoginAt || d.updatedAt || d.createdAt || '',
             updatedAt: d.updatedAt || '',
+            dailyUsage: d.dailyUsage || undefined,
           });
         });
 
@@ -122,6 +124,7 @@ export const AdminUserTrackerModal: React.FC<AdminUserTrackerModalProps> = ({
           createdAt: d.createdAt || '',
           lastLoginAt: d.lastLoginAt || d.updatedAt || d.createdAt || '',
           updatedAt: d.updatedAt || '',
+          dailyUsage: d.dailyUsage || undefined,
         });
       });
 
@@ -138,6 +141,8 @@ export const AdminUserTrackerModal: React.FC<AdminUserTrackerModalProps> = ({
   const handleExportCSV = () => {
     if (users.length === 0) return;
 
+    const todayKey = new Date().toISOString().slice(0, 10);
+
     const headers = [
       'No',
       'User ID',
@@ -146,21 +151,26 @@ export const AdminUserTrackerModal: React.FC<AdminUserTrackerModalProps> = ({
       'Sektor Industri',
       'Peran di Pabrik',
       'Skala Pabrik',
+      'Tanya Hari Ini (Max 10)',
       'Tanggal Bergabung (UTC/ISO)',
       'Terakhir Aktif',
     ];
 
-    const rows = users.map((u, idx) => [
-      idx + 1,
-      `"${u.id}"`,
-      `"${u.displayName.replace(/"/g, '""')}"`,
-      `"${u.email}"`,
-      `"${(u.industry || '').replace(/"/g, '""')}"`,
-      `"${(u.role || '').replace(/"/g, '""')}"`,
-      `"${(u.plantScale || '').replace(/"/g, '""')}"`,
-      `"${u.createdAt || ''}"`,
-      `"${u.lastLoginAt || ''}"`,
-    ]);
+    const rows = users.map((u, idx) => {
+      const todayCount = u.dailyUsage && u.dailyUsage.date === todayKey ? u.dailyUsage.count : 0;
+      return [
+        idx + 1,
+        `"${u.id}"`,
+        `"${u.displayName.replace(/"/g, '""')}"`,
+        `"${u.email}"`,
+        `"${(u.industry || '').replace(/"/g, '""')}"`,
+        `"${(u.role || '').replace(/"/g, '""')}"`,
+        `"${(u.plantScale || '').replace(/"/g, '""')}"`,
+        todayCount,
+        `"${u.createdAt || ''}"`,
+        `"${u.lastLoginAt || ''}"`,
+      ];
+    });
 
     const csvContent =
       'data:text/csv;charset=utf-8,\uFEFF' +
@@ -411,12 +421,16 @@ export const AdminUserTrackerModal: React.FC<AdminUserTrackerModalProps> = ({
                     <th className="py-2.5 px-3">Pengguna</th>
                     <th className="py-2.5 px-3">Email Google</th>
                     <th className="py-2.5 px-3">Sektor Industri & Peran</th>
+                    <th className="py-2.5 px-3 text-center">Tanya Hari Ini</th>
                     <th className="py-2.5 px-3">Waktu Bergabung</th>
                     <th className="py-2.5 px-3">Terakhir Aktif</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filteredUsers.map((u, index) => {
+                    const todayKey = new Date().toISOString().slice(0, 10);
+                    const todayCount = u.dailyUsage && u.dailyUsage.date === todayKey ? u.dailyUsage.count : 0;
+
                     const joinDate = u.createdAt
                       ? new Date(u.createdAt).toLocaleDateString('id-ID', {
                           day: 'numeric',
@@ -481,6 +495,19 @@ export const AdminUserTrackerModal: React.FC<AdminUserTrackerModalProps> = ({
                             </p>
                             <p className="text-[11px] text-slate-500 truncate">{u.role || '-'}</p>
                           </div>
+                        </td>
+                        <td className="py-3 px-3 text-center whitespace-nowrap">
+                          {todayCount >= 10 ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-bold text-[10px]">
+                              10/10 (Limit)
+                            </span>
+                          ) : todayCount > 0 ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold text-[10px]">
+                              {todayCount} / 10
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 text-[11px] font-medium">0 / 10</span>
+                          )}
                         </td>
                         <td className="py-3 px-3 text-slate-600 whitespace-nowrap">{joinDate}</td>
                         <td className="py-3 px-3 text-slate-600 whitespace-nowrap">

@@ -34,6 +34,7 @@ service cloud.firestore {
         && (data.role == null || data.role is string)
         && (data.plantScale == null || data.plantScale is string)
         && (data.lastLoginAt == null || isValidTimestampString(data.lastLoginAt))
+        && (data.dailyUsage == null || (data.dailyUsage is map && data.dailyUsage.date is string && data.dailyUsage.count is number))
         && isValidTimestampString(data.createdAt)
         && isValidTimestampString(data.updatedAt);
     }

@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   setDoc,
   deleteDoc,
@@ -94,5 +95,54 @@ export async function fetchSessionsFromCloud(userId: string): Promise<Discussion
     return snap.docs.map((docSnap) => docSnap.data() as DiscussionSession);
   } catch (err) {
     handleFirestoreError(err, OperationType.LIST, `users/${userId}/discussions`);
+  }
+}
+
+/**
+ * User Daily Usage Cloud Sync
+ */
+export async function syncDailyUsageToCloud(
+  userId: string,
+  date: string,
+  count: number
+): Promise<void> {
+  try {
+    const userDocRef = doc(db, 'users', userId);
+    await setDoc(
+      userDocRef,
+      {
+        dailyUsage: { date, count },
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+  } catch (err) {
+    console.warn('Sync daily usage warning:', err);
+  }
+}
+
+export async function fetchUserDailyUsageFromCloud(
+  userId: string
+): Promise<{ date: string; count: number } | null> {
+  try {
+    const userDocRef = doc(db, 'users', userId);
+    const snap = await getDoc(userDocRef);
+    if (snap.exists()) {
+      const data = snap.data();
+      if (
+        data?.dailyUsage &&
+        typeof data.dailyUsage.count === 'number' &&
+        typeof data.dailyUsage.date === 'string'
+      ) {
+        return {
+          date: data.dailyUsage.date,
+          count: data.dailyUsage.count,
+        };
+      }
+    }
+    return null;
+  } catch (err) {
+    console.warn('Fetch user daily usage warning:', err);
+    return null;
   }
 }
